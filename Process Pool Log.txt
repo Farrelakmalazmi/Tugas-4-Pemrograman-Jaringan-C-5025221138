@@ -1,0 +1,299 @@
+Process Pool
+
+Server :
+(base) jovyan@66869b99047e:~/work/progjar/progjar5$ python3 server_process_pool_http.py
+2025-06-16 10:47:49,959 - [SERVER] - Server (Multiprocess) aktif dan mendengarkan di port 8889...
+2025-06-16 10:47:57,401 - [SERVER] - Koneksi diterima dari ('172.16.16.103', 53000)
+2025-06-16 10:47:57,408 - [SERVER] - Mulai menangani ('172.16.16.103', 53000)
+2025-06-16 10:47:59,410 - [SERVER] - Request Diterima: GET / HTTP/1.1
+2025-06-16 10:47:59,411 - [SERVER] - Selesai, koneksi dengan ('172.16.16.103', 53000) ditutup.
+2025-06-16 10:48:00,195 - [SERVER] - Koneksi diterima dari ('172.16.16.102', 48928)
+2025-06-16 10:48:00,197 - [SERVER] - Mulai menangani ('172.16.16.102', 48928)
+2025-06-16 10:48:02,200 - [SERVER] - Request Diterima: GET / HTTP/1.1
+2025-06-16 10:48:02,201 - [SERVER] - Selesai, koneksi dengan ('172.16.16.102', 48928) ditutup.
+2025-06-16 10:48:17,407 - [SERVER] - Koneksi diterima dari ('172.16.16.102', 45416)
+2025-06-16 10:48:17,409 - [SERVER] - Mulai menangani ('172.16.16.102', 45416)
+2025-06-16 10:48:19,413 - [SERVER] - Request Diterima: POST /file_client_1.txt HTTP/1.1
+2025-06-16 10:48:19,413 - [SERVER] - File file_client_1.txt berhasil di-upload.
+2025-06-16 10:48:19,414 - [SERVER] - Selesai, koneksi dengan ('172.16.16.102', 45416) ditutup.
+2025-06-16 10:48:20,245 - [SERVER] - Koneksi diterima dari ('172.16.16.103', 58506)
+2025-06-16 10:48:20,247 - [SERVER] - Mulai menangani ('172.16.16.103', 58506)
+2025-06-16 10:48:22,252 - [SERVER] - Request Diterima: GET / HTTP/1.1
+2025-06-16 10:48:22,253 - [SERVER] - Selesai, koneksi dengan ('172.16.16.103', 58506) ditutup.
+2025-06-16 10:48:37,291 - [SERVER] - Koneksi diterima dari ('172.16.16.103', 37422)
+2025-06-16 10:48:37,293 - [SERVER] - Mulai menangani ('172.16.16.103', 37422)
+2025-06-16 10:48:39,296 - [SERVER] - Request Diterima: DELETE /file_client_1.txt HTTP/1.1
+2025-06-16 10:48:39,296 - [SERVER] - File file_client_1.txt berhasil dihapus.
+2025-06-16 10:48:39,297 - [SERVER] - Selesai, koneksi dengan ('172.16.16.103', 37422) ditutup.
+2025-06-16 10:48:44,079 - [SERVER] - Koneksi diterima dari ('172.16.16.102', 60982)
+2025-06-16 10:48:44,082 - [SERVER] - Mulai menangani ('172.16.16.102', 60982)
+2025-06-16 10:48:46,083 - [SERVER] - Request Diterima: GET / HTTP/1.1
+2025-06-16 10:48:46,084 - [SERVER] - Selesai, koneksi dengan ('172.16.16.102', 60982) ditutup.
+
+Client 1 :
+(base) jovyan@272794a38dc5:~/work/progjar/progjar5/client$ python3 client.py
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 1
+
+[INFO] Meminta daftar file dari server...
+
+--- MENGIRIM REQUEST ---
+GET / HTTP/1.1
+Host: 172.16.16.101
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 200 OK
+Date: Mon Jun 16 10:48:02 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 493
+Content-Type: text/plain; charset=utf-8
+
+Daftar File di Server:
+----------------------
+1. .ipynb_checkpoints
+2. __pycache__
+3. certs
+4. client
+5. donalbebek.jpg
+6. http.py
+7. page.html
+8. perftest.sh
+9. pokijan.jpg
+10. research_center.jpg
+11. resources.txt
+12. rfc2616.pdf
+13. sending.html
+14. server_async_http.py
+15. server_asyncio_stream_http.py
+16. server_process_http.py
+17. server_process_pool_http.py
+18. server_thread_http.py
+19. server_thread_http_secure.py
+20. server_thread_pool_http.py
+21. socket_proxy.py
+22. testing.txt
+
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 2
+Masukkan nama file lokal yang akan di-upload (misal: mydocument.txt): file_client_1.txt
+Masukkan nama file untuk disimpan di server (default: file_client_1.txt): 
+
+[INFO] Meng-upload 'file_client_1.txt' sebagai 'file_client_1.txt'...
+
+--- MENGIRIM REQUEST ---
+POST /file_client_1.txt HTTP/1.1
+Host: 172.16.16.101
+Content-Type: text/plain
+Content-Length: 0
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 201 Created
+Date: Mon Jun 16 10:48:19 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 39
+
+File file_client_1.txt berhasil dibuat.
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 1
+
+[INFO] Meminta daftar file dari server...
+
+--- MENGIRIM REQUEST ---
+GET / HTTP/1.1
+Host: 172.16.16.101
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 200 OK
+Date: Mon Jun 16 10:48:46 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 493
+Content-Type: text/plain; charset=utf-8
+
+Daftar File di Server:
+----------------------
+1. .ipynb_checkpoints
+2. __pycache__
+3. certs
+4. client
+5. donalbebek.jpg
+6. http.py
+7. page.html
+8. perftest.sh
+9. pokijan.jpg
+10. research_center.jpg
+11. resources.txt
+12. rfc2616.pdf
+13. sending.html
+14. server_async_http.py
+15. server_asyncio_stream_http.py
+16. server_process_http.py
+17. server_process_pool_http.py
+18. server_thread_http.py
+19. server_thread_http_secure.py
+20. server_thread_pool_http.py
+21. socket_proxy.py
+22. testing.txt
+
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 4
+Terima kasih, program keluar.
+
+
+Client 2:
+(base) jovyan@59f6059766dd:~/work/progjar/progjar5/client$ python3 client.py
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 1
+
+[INFO] Meminta daftar file dari server...
+
+--- MENGIRIM REQUEST ---
+GET / HTTP/1.1
+Host: 172.16.16.101
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 200 OK
+Date: Mon Jun 16 10:47:59 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 493
+Content-Type: text/plain; charset=utf-8
+
+Daftar File di Server:
+----------------------
+1. .ipynb_checkpoints
+2. __pycache__
+3. certs
+4. client
+5. donalbebek.jpg
+6. http.py
+7. page.html
+8. perftest.sh
+9. pokijan.jpg
+10. research_center.jpg
+11. resources.txt
+12. rfc2616.pdf
+13. sending.html
+14. server_async_http.py
+15. server_asyncio_stream_http.py
+16. server_process_http.py
+17. server_process_pool_http.py
+18. server_thread_http.py
+19. server_thread_http_secure.py
+20. server_thread_pool_http.py
+21. socket_proxy.py
+22. testing.txt
+
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 1
+
+[INFO] Meminta daftar file dari server...
+
+--- MENGIRIM REQUEST ---
+GET / HTTP/1.1
+Host: 172.16.16.101
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 200 OK
+Date: Mon Jun 16 10:48:22 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 515
+Content-Type: text/plain; charset=utf-8
+
+Daftar File di Server:
+----------------------
+1. .ipynb_checkpoints
+2. __pycache__
+3. certs
+4. client
+5. donalbebek.jpg
+6. file_client_1.txt
+7. http.py
+8. page.html
+9. perftest.sh
+10. pokijan.jpg
+11. research_center.jpg
+12. resources.txt
+13. rfc2616.pdf
+14. sending.html
+15. server_async_http.py
+16. server_asyncio_stream_http.py
+17. server_process_http.py
+18. server_process_pool_http.py
+19. server_thread_http.py
+20. server_thread_http_secure.py
+21. server_thread_pool_http.py
+22. socket_proxy.py
+23. testing.txt
+
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 3
+Masukkan nama file di server yang akan dihapus: file_client_1.txt
+
+[INFO] Menghapus file 'file_client_1.txt' dari server...
+
+--- MENGIRIM REQUEST ---
+DELETE /file_client_1.txt HTTP/1.1
+Host: 172.16.16.101
+
+
+--- RESPON DITERIMA ---
+HTTP/1.1 200 OK
+Date: Mon Jun 16 10:48:39 2025
+Connection: close
+Server: myserver/1.0
+Content-Length: 40
+
+File file_client_1.txt berhasil dihapus.
+
+--- MENU KLIEN HTTP ---
+1. Lihat Daftar File di Server
+2. Upload File ke Server
+3. Hapus File di Server
+4. Keluar
+Pilih Opsi (1-4): 4
+Terima kasih, program keluar.
+
