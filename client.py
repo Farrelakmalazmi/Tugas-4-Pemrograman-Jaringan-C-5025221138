@@ -7,9 +7,6 @@ SERVER_HOST = '172.16.16.101'
 SERVER_PORT = 8889           
 
 def send_request(request_string):
-    """
-    Fungsi ini mengirimkan request HTTP mentah ke server dan mengembalikan responsnya.
-    """
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((SERVER_HOST, SERVER_PORT))
@@ -33,7 +30,6 @@ def send_request(request_string):
         return None
 
 def get_file_list():
-    """Fungsi untuk meminta dan menampilkan daftar file dari server."""
     print("\n[INFO] Meminta daftar file dari server...")
     request = f"GET / HTTP/1.1\r\nHost: {SERVER_HOST}\r\n\r\n"
     response = send_request(request)
@@ -41,7 +37,6 @@ def get_file_list():
         print(response)
 
 def upload_file():
-    """Fungsi untuk meng-upload file ke server."""
     local_filepath = input("Masukkan nama file lokal yang akan di-upload (misal: mydocument.txt): ")
     
     if not os.path.exists(local_filepath):
@@ -73,7 +68,6 @@ def upload_file():
         print(f"[ERROR] Gagal membaca atau meng-upload file: {e}")
 
 def delete_file():
-    """Fungsi untuk menghapus file di server."""
     filename_to_delete = input("Masukkan nama file di server yang akan dihapus: ")
     if not filename_to_delete:
         print("[ERROR] Nama file tidak boleh kosong.")
@@ -86,7 +80,6 @@ def delete_file():
         print(response)
 
 def main():
-    """Fungsi utama yang menjalankan menu interaktif."""
     logging.basicConfig(level=logging.WARNING, format='%(message)s')
     
     while True:
