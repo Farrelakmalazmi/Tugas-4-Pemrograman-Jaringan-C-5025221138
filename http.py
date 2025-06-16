@@ -23,7 +23,6 @@ class HttpServer:
         resp.append("Connection: close\r\n")
         resp.append("Server: myserver/1.0\r\n")
         
-        # Pastikan messagebody selalu dalam bentuk bytes sebelum menghitung panjangnya
         if not isinstance(messagebody, bytes):
             messagebody = str(messagebody).encode('utf-8')
             
@@ -47,7 +46,6 @@ class HttpServer:
             method = j[0].upper().strip()
             object_address = j[1].strip()
             
-            # Logika untuk memisahkan header dan body dari request
             headers = {}
             body_start_index = -1
             for i, line in enumerate(requests[1:]):
@@ -62,7 +60,6 @@ class HttpServer:
             if body_start_index != -1:
                 body = "\r\n".join(requests[body_start_index:])
 
-            # Routing ke metode yang sesuai
             if method == 'GET':
                 return self.http_get(object_address, headers)
             elif method == 'POST':
@@ -75,13 +72,10 @@ class HttpServer:
             return self.response(400, 'Bad Request', 'Request tidak valid', {})
 
     def http_get(self, object_address, headers):
-        # Fitur 1: Melihat daftar file dalam format teks biasa
         if object_address == '/':
             try:
-                # Menggunakan os.listdir untuk cara yang lebih bersih dan diurutkan
                 files = sorted(os.listdir('.'))
                 
-                # Membuat daftar teks biasa, bukan HTML
                 file_list_text = "Daftar File di Server:\n"
                 file_list_text += "----------------------\n"
                 
@@ -91,13 +85,11 @@ class HttpServer:
                     for i, f in enumerate(files):
                         file_list_text += f"{i + 1}. {f}\n"
                 
-                # Mengirim respons dengan Content-Type 'text/plain'
                 return self.response(200, 'OK', file_list_text, {'Content-Type': 'text/plain; charset=utf-8'})
             
             except Exception as e:
                 return self.response(500, 'Internal Server Error', f"Tidak bisa membaca direktori: {e}", {})
 
-        # Logika lama untuk mengambil file spesifik
         object_address_path = object_address.lstrip('/')
         if not os.path.exists(object_address_path):
             return self.response(404, 'Not Found', f'File {object_address_path} tidak ditemukan', {})
@@ -114,14 +106,12 @@ class HttpServer:
             return self.response(500, 'Internal Server Error', f"Tidak bisa membaca file: {e}", {})
 
     def http_post(self, object_address, headers, body):
-        # Fitur 2: Upload file
         filename = object_address.lstrip('/')
         
         if not filename or '..' in filename or '/' in filename:
             return self.response(400, 'Bad Request', 'Nama file tidak valid.', {})
 
         try:
-            # Body sudah dalam bentuk string, perlu di-encode ke bytes untuk ditulis
             with open(filename, 'wb') as f:
                 f.write(body.encode('utf-8'))
             logging.warning(f"File {filename} berhasil di-upload.")
@@ -131,7 +121,6 @@ class HttpServer:
             return self.response(500, 'Internal Server Error', f"Gagal saat upload: {e}", {})
 
     def http_delete(self, object_address, headers):
-        # Fitur 3: Menghapus file
         filename = object_address.lstrip('/')
         
         if not filename or '..' in filename or '/' in filename:
@@ -149,9 +138,4 @@ class HttpServer:
             return self.response(500, 'Internal Server Error', f"Gagal saat menghapus: {e}", {})
 
 if __name__ == "__main__":
-    # Bagian ini untuk pengujian mandiri jika file dijalankan langsung
     httpserver = HttpServer()
-    # Contoh pengujian:
-    # req = 'GET / HTTP/1.1\r\n\r\n'
-    # resp = httpserver.proses(req)
-    # print(resp.decode(errors='ignore'))
