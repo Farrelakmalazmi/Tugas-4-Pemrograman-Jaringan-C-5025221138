@@ -164,10 +164,147 @@ Terima kasih, program keluar.
 <summary><strong>`http.py`</strong></summary>
 
 ```python
-# ... Tempelkan isi lengkap http.py di sini ...
 import sys
 import os
-# ... (sisa kode)
+import uuid
+from glob import glob
+from datetime import datetime
+import logging
+
+class HttpServer:
+    def __init__(self):
+        self.sessions = {}
+        self.types = {}
+        self.types['.pdf'] = 'application/pdf'
+        self.types['.jpg'] = 'image/jpeg'
+        self.types['.png'] = 'image/png'
+        self.types['.txt'] = 'text/plain'
+        self.types['.html'] = 'text/html'
+
+    def response(self, kode=404, message='Not Found', messagebody=b'', headers={}):
+        tanggal = datetime.now().strftime('%c')
+        resp = []
+        resp.append(f"HTTP/1.1 {kode} {message}\r\n")
+        resp.append(f"Date: {tanggal}\r\n")
+        resp.append("Connection: close\r\n")
+        resp.append("Server: myserver/1.0\r\n")
+        
+        if not isinstance(messagebody, bytes):
+            messagebody = str(messagebody).encode('utf-8')
+            
+        resp.append(f"Content-Length: {len(messagebody)}\r\n")
+        for kk in headers:
+            resp.append(f"{kk}: {headers[kk]}\r\n")
+        resp.append("\r\n")
+
+        response_headers = "".join(resp)
+        response = response_headers.encode('utf-8') + messagebody
+        return response
+
+    def proses(self, data):
+        requests = data.split("\r\n")
+        baris = requests[0]
+        
+        logging.warning(f"Request Diterima: {baris}")
+
+        j = baris.split(" ")
+        try:
+            method = j[0].upper().strip()
+            object_address = j[1].strip()
+            
+            headers = {}
+            body_start_index = -1
+            for i, line in enumerate(requests[1:]):
+                if line == '':
+                    body_start_index = i + 2
+                    break
+                parts = line.split(":", 1)
+                if len(parts) == 2:
+                    headers[parts[0].strip()] = parts[1].strip()
+            
+            body = ""
+            if body_start_index != -1:
+                body = "\r\n".join(requests[body_start_index:])
+
+            if method == 'GET':
+                return self.http_get(object_address, headers)
+            elif method == 'POST':
+                return self.http_post(object_address, headers, body)
+            elif method == 'DELETE':
+                return self.http_delete(object_address, headers)
+            else:
+                return self.response(405, 'Method Not Allowed', 'Metode tidak didukung', {})
+        except IndexError:
+            return self.response(400, 'Bad Request', 'Request tidak valid', {})
+
+    def http_get(self, object_address, headers):
+        if object_address == '/':
+            try:
+                files = sorted(os.listdir('.'))
+                
+                file_list_text = "Daftar File di Server:\n"
+                file_list_text += "----------------------\n"
+                
+                if not files:
+                    file_list_text += "(Direktori kosong)\n"
+                else:
+                    for i, f in enumerate(files):
+                        file_list_text += f"{i + 1}. {f}\n"
+                
+                return self.response(200, 'OK', file_list_text, {'Content-Type': 'text/plain; charset=utf-8'})
+            
+            except Exception as e:
+                return self.response(500, 'Internal Server Error', f"Tidak bisa membaca direktori: {e}", {})
+
+        object_address_path = object_address.lstrip('/')
+        if not os.path.exists(object_address_path):
+            return self.response(404, 'Not Found', f'File {object_address_path} tidak ditemukan', {})
+
+        try:
+            with open(object_address_path, 'rb') as fp:
+                isi = fp.read()
+            
+            fext = os.path.splitext(object_address_path)[1].lower()
+            content_type = self.types.get(fext, 'application/octet-stream')
+            
+            return self.response(200, 'OK', isi, {'Content-type': content_type})
+        except Exception as e:
+            return self.response(500, 'Internal Server Error', f"Tidak bisa membaca file: {e}", {})
+
+    def http_post(self, object_address, headers, body):
+        filename = object_address.lstrip('/')
+        
+        if not filename or '..' in filename or '/' in filename:
+            return self.response(400, 'Bad Request', 'Nama file tidak valid.', {})
+
+        try:
+            with open(filename, 'wb') as f:
+                f.write(body.encode('utf-8'))
+            logging.warning(f"File {filename} berhasil di-upload.")
+            return self.response(201, 'Created', f'File {filename} berhasil dibuat.', {})
+        except Exception as e:
+            logging.error(f"Gagal meng-upload file: {e}")
+            return self.response(500, 'Internal Server Error', f"Gagal saat upload: {e}", {})
+
+    def http_delete(self, object_address, headers):
+        filename = object_address.lstrip('/')
+        
+        if not filename or '..' in filename or '/' in filename:
+            return self.response(400, 'Bad Request', 'Nama file tidak valid.', {})
+        
+        if not os.path.exists(filename):
+            return self.response(404, 'Not Found', f'File {filename} tidak ditemukan untuk dihapus.', {})
+
+        try:
+            os.remove(filename)
+            logging.warning(f"File {filename} berhasil dihapus.")
+            return self.response(200, 'OK', f'File {filename} berhasil dihapus.', {})
+        except Exception as e:
+            logging.error(f"Gagal menghapus file: {e}")
+            return self.response(500, 'Internal Server Error', f"Gagal saat menghapus: {e}", {})
+
+if __name__ == "__main__":
+    httpserver = HttpServer()
 ```
 </details>
 
@@ -175,10 +312,113 @@ import os
 <summary><strong>`client.py`</strong></summary>
 
 ```python
-# ... Tempelkan isi lengkap client.py di sini ...
 import sys
 import socket
-# ... (sisa kode)
+import logging
+import os
+
+SERVER_HOST = '172.16.16.101' 
+SERVER_PORT = 8889           
+
+def send_request(request_string):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((SERVER_HOST, SERVER_PORT))
+        
+        logging.warning(f"\n--- MENGIRIM REQUEST ---\n{request_string}")
+        sock.sendall(request_string.encode())
+        
+        response_received = b""
+        while True:
+            data = sock.recv(1024)
+            if not data:
+                break
+            response_received += data
+        
+        sock.close()
+        logging.warning("--- RESPON DITERIMA ---")
+        return response_received.decode(errors='ignore')
+        
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return None
+
+def get_file_list():
+    print("\n[INFO] Meminta daftar file dari server...")
+    request = f"GET / HTTP/1.1\r\nHost: {SERVER_HOST}\r\n\r\n"
+    response = send_request(request)
+    if response:
+        print(response)
+
+def upload_file():
+    local_filepath = input("Masukkan nama file lokal yang akan di-upload (misal: mydocument.txt): ")
+    
+    if not os.path.exists(local_filepath):
+        print(f"[ERROR] File lokal '{local_filepath}' tidak ditemukan.")
+        return
+
+    remote_filename = input(f"Masukkan nama file untuk disimpan di server (default: {local_filepath}): ")
+    if not remote_filename:
+        remote_filename = os.path.basename(local_filepath)
+
+    try:
+        with open(local_filepath, 'r') as f:
+            content = f.read()
+            
+        print(f"\n[INFO] Meng-upload '{local_filepath}' sebagai '{remote_filename}'...")
+        body = content
+        headers = [
+            f"POST /{remote_filename} HTTP/1.1",
+            f"Host: {SERVER_HOST}",
+            f"Content-Type: text/plain",
+            f"Content-Length: {len(body)}"
+        ]
+        request = "\r\n".join(headers) + "\r\n\r\n" + body
+        response = send_request(request)
+        if response:
+            print(response)
+            
+    except Exception as e:
+        print(f"[ERROR] Gagal membaca atau meng-upload file: {e}")
+
+def delete_file():
+    filename_to_delete = input("Masukkan nama file di server yang akan dihapus: ")
+    if not filename_to_delete:
+        print("[ERROR] Nama file tidak boleh kosong.")
+        return
+
+    print(f"\n[INFO] Menghapus file '{filename_to_delete}' dari server...")
+    request = f"DELETE /{filename_to_delete} HTTP/1.1\r\nHost: {SERVER_HOST}\r\n\r\n"
+    response = send_request(request)
+    if response:
+        print(response)
+
+def main():
+    logging.basicConfig(level=logging.WARNING, format='%(message)s')
+    
+    while True:
+        print("\n--- MENU KLIEN HTTP ---")
+        print("1. Lihat Daftar File di Server")
+        print("2. Upload File ke Server")
+        print("3. Hapus File di Server")
+        print("4. Keluar")
+        choice = input("Pilih Opsi (1-4): ")
+
+        if choice == '1':
+            get_file_list()
+        elif choice == '2':
+            upload_file()
+        elif choice == '3':
+            delete_file()
+        elif choice == '4':
+            print("Terima kasih, program keluar.")
+            break
+        else:
+            print("[ERROR] Pilihan tidak valid, silakan coba lagi.")
+
+if __name__ == '__main__':
+    main()
+
 ```
 </details>
 
@@ -186,10 +426,75 @@ import socket
 <summary><strong>`server_thread_pool_http.py` (Mesin Thread Pool)</strong></summary>
 
 ```python
-# ... Tempelkan isi lengkap server_thread_pool_http.py di sini ...
 from socket import *
 import socket
-# ... (sisa kode)
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from http import HttpServer
+
+httpserver = HttpServer()
+
+def ProcessTheClient(connection, address):
+    full_request_bytes = b''
+    try:
+        while True:
+            data = connection.recv(1024)
+            if not data:
+                break
+            full_request_bytes += data
+            if full_request_bytes.endswith(b'\r\n\r\n'):
+                if b'Content-Length' not in full_request_bytes:
+                    break
+            if b"\r\n\r\n" in full_request_bytes:
+                 header_part, _ = full_request_bytes.split(b"\r\n\r\n", 1)
+                 if b"Content-Length: 0" in header_part or b"POST" not in header_part:
+                     break
+                 connection.settimeout(0.2)
+    except socket.timeout:
+        pass
+    except Exception as e:
+        logging.error(f"Error saat menerima data: {e}")
+    finally:
+        connection.settimeout(None)
+
+
+    if not full_request_bytes:
+        connection.close()
+        return
+
+    try:
+        hasil = httpserver.proses(full_request_bytes.decode('utf-8', errors='ignore'))
+        connection.sendall(hasil)
+    except Exception as e:
+        logging.error(f"Error saat memproses atau mengirim balasan: {e}")
+    
+    connection.close()
+    return
+
+def Server():
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    my_socket.bind(('0.0.0.0', 8885))
+    my_socket.listen(1)
+    logging.warning("Server (Thread Pool) aktif dan mendengarkan di port 8885...")
+
+    with ThreadPoolExecutor(20) as executor:
+        while True:
+            try:
+                connection, client_address = my_socket.accept()
+                logging.warning(f"Koneksi diterima dari {client_address}")
+                executor.submit(ProcessTheClient, connection, client_address)
+            except Exception as e:
+                logging.error(f"Error saat menerima koneksi: {e}")
+
+def main():
+    logging.basicConfig(level=logging.WARNING, format='%(asctime)s - [%(levelname)s] - %(message)s')
+    Server()
+
+if __name__ == "__main__":
+    main()
+
 ```
 </details>
 
@@ -197,9 +502,83 @@ import socket
 <summary><strong>`server_process_pool_http.py` (Mesin Multiprocess)</strong></summary>
 
 ```python
-# ... Tempelkan isi lengkap server_process_pool_http.py di sini ...
 import socket
 import logging
-# ... (sisa kode)
+import multiprocessing
+import os
+from http import HttpServer
+
+class Worker(multiprocessing.Process):
+    """
+    Setiap instance dari kelas ini adalah sebuah proses pekerja yang independen,
+    dibuat khusus untuk menangani satu koneksi klien.
+    """
+    def __init__(self, connection, address):
+        super().__init__()
+        self.connection = connection
+        self.address = address
+        self.httpserver = HttpServer()
+
+    def run(self):
+        logging.basicConfig(level=logging.WARNING, format=f'[WORKER PID:{os.getpid()}] %(message)s')
+        logging.warning(f"Mulai menangani {self.address}")
+        
+        full_request_bytes = b''
+        try:
+            self.connection.settimeout(2.0)
+            while True:
+                data = self.connection.recv(1024)
+                if not data:
+                    break
+                full_request_bytes += data
+        except socket.timeout:
+            pass 
+        except Exception as e:
+            logging.error(f"Error saat menerima data: {e}")
+        finally:
+            self.connection.settimeout(None)
+
+        if full_request_bytes:
+            try:
+                request_str = full_request_bytes.decode('utf-8', errors='ignore')
+                hasil = self.httpserver.proses(request_str)
+                self.connection.sendall(hasil)
+            except Exception as e:
+                logging.error(f"Error saat memproses/mengirim: {e}")
+        
+        self.connection.close()
+        logging.warning(f"Selesai, koneksi dengan {self.address} ditutup.")
+
+
+def main():
+    logging.basicConfig(level=logging.WARNING, format='%(asctime)s - [SERVER] - %(message)s')
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    my_socket.bind(('0.0.0.0', 8889))
+    my_socket.listen(5)
+    logging.warning("Server (Multiprocess) aktif dan mendengarkan di port 8889...")
+
+    processes = []
+    while True:
+        try:
+            connection, client_address = my_socket.accept()
+            logging.warning(f"Koneksi diterima dari {client_address}")
+            
+            process = Worker(connection, client_address)
+            process.start()
+            
+            connection.close()
+            
+            processes.append(process)
+            
+            processes = [p for p in processes if p.is_alive()]
+
+        except Exception as e:
+            logging.error(f"Error di server utama: {e}")
+
+if __name__ == "__main__":
+    main()
+
 ```
 </details>
